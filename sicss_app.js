@@ -1,4 +1,4 @@
-importScripts("https://cdn.jsdelivr.net/pyodide/v0.23.4/pyc/pyodide.js");
+importScripts("https://cdn.jsdelivr.net/pyodide/v0.24.1/pyc/pyodide.js");
 
 function sendPatch(patch, buffers, msg_id) {
   self.postMessage({
@@ -15,7 +15,7 @@ async function startApplication() {
   self.pyodide.globals.set("sendPatch", sendPatch);
   console.log("Loaded!");
   await self.pyodide.loadPackage("micropip");
-  const env_spec = ['https://cdn.holoviz.org/panel/1.2.3/dist/wheels/bokeh-3.2.2-py3-none-any.whl', 'https://cdn.holoviz.org/panel/1.2.3/dist/wheels/panel-1.2.3-py3-none-any.whl', 'pyodide-http==0.2.1', 'cryptography', 'geopandas', 'hvplot', 'numpy', 'pandas', 'requests']
+  const env_spec = ['https://cdn.holoviz.org/panel/1.2.3/dist/wheels/bokeh-3.2.2-py3-none-any.whl', 'https://cdn.holoviz.org/panel/1.2.3/dist/wheels/panel-1.2.3-py3-none-any.whl', 'pyodide-http', 'cartopy', 'cryptography', 'geopandas', 'hvplot', 'numpy', 'pandas']
   for (const pkg of env_spec) {
     let pkg_name;
     if (pkg.endsWith('.whl')) {
@@ -24,6 +24,7 @@ async function startApplication() {
       pkg_name = pkg
     }
     self.postMessage({type: 'status', msg: `Installing ${pkg_name}`})
+    console.log(`Installing ${pkg_name}`)
     try {
       await self.pyodide.runPythonAsync(`
         import micropip
@@ -49,6 +50,7 @@ init_doc()
 
 import panel as pn
 import hvplot.pandas
+pn.extension()
 
 from numpy import mean
 import pandas as pd
@@ -59,7 +61,7 @@ from cryptography.fernet import Fernet
 from cryptography.hazmat.primitives import hashes
 from cryptography.hazmat.primitives.kdf.pbkdf2 import PBKDF2HMAC
 from cryptography.hazmat.backends import default_backend
-import requests
+import cartopy.crs as ccrs
 
 def decrypt_file(password):
     """
@@ -122,7 +124,7 @@ def create_data(pass_):
     df_gemeente["statcode"] = (
         "GM" + df_gemeente["Gemeente"].astype(float).astype(int).astype(str).str.zfill(4)
     )  # same as geopandas file
-    df_g = gp.read_file("http://javier.science/panel_sicss_results/data/nld.geojson").to_crs("epsg:3395")
+    df_g = gp.read_file("http://javier.science/panel_sicss_results/data/nld.geojson")
     df_g["geometry"] = df_g["geometry"].simplify(500)
     df_gemeente = pd.merge(df_g, df_gemeente)
 
@@ -220,7 +222,7 @@ def plots(df, df_gemeente):
             title=title,
             cmap="RdYlBu_r",
             c='f1_score',
-            crs="3395",
+            crs=ccrs.epsg("28992"),
             hover_cols=["statcode", "statnaam"],
             width=850,
             height=550,
