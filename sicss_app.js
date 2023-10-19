@@ -49,7 +49,6 @@ init_doc()
 
 import panel as pn
 import hvplot.pandas
-pn.extension()
 
 from numpy import mean
 import pandas as pd
@@ -74,8 +73,9 @@ def decrypt_file(password):
         pd.DataFrame: Decrypted data as a pandas DataFrame.
     """
     
-    with open("data/eval_data_cleaned.tsv.crypt") as f:
-        file_data = f.read()
+    url = "http://javier.science/panel_sicss_results/data/eval_data_cleaned.tsv.crypt"
+    response = requests.get(url)
+    file_data = response.content
 
     # Extract the salt and encrypted data
     salt, encrypted_data = file_data[:16], file_data[16:]
@@ -122,7 +122,7 @@ def create_data(pass_):
     df_gemeente["statcode"] = (
         "GM" + df_gemeente["Gemeente"].astype(float).astype(int).astype(str).str.zfill(4)
     )  # same as geopandas file
-    df_g = gp.read_file("data/nld.geojson").to_crs("epsg:3395")
+    df_g = gp.read_file("http://javier.science/panel_sicss_results/data/nld.geojson").to_crs("epsg:3395")
     df_g["geometry"] = df_g["geometry"].simplify(500)
     df_gemeente = pd.merge(df_g, df_gemeente)
 
@@ -292,6 +292,19 @@ def submit_password(event):
     Args:
         event: The triggering event (button click in this case).
     """
+    password = pass_input.value
+    
+    # Switch to the Data View tab and show a loading message
+    tabs.active = 1
+    data_view.append(pn.pane.Markdown("Loading data"))
+    
+    # Use the password to create the necessary data
+    df, df_gemeente = create_data(password)
+    
+    # Clear previous data views and display new data
+    data_view.clear()
+    data_view.append(plots(df, df_gemeente))
+
     try:
         # Get the entered password
         password = pass_input.value
