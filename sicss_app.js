@@ -74,7 +74,7 @@ def decrypt_file(password):
         pd.DataFrame: Decrypted data as a pandas DataFrame.
     """
     
-    url = "https://raw.githubusercontent.com/jgarciab/workshop_data_viz/main/advanced_2023/data/eval_data_cleaned.tsv.crypt"
+    url = "http://javier.science/panel_sicss_results/data/eval_data_cleaned.tsv.crypt"
     response = requests.get(url)
     file_data = response.content
 
@@ -123,7 +123,7 @@ def create_data(pass_):
     df_gemeente["statcode"] = (
         "GM" + df_gemeente["Gemeente"].astype(float).astype(int).astype(str).str.zfill(4)
     )  # same as geopandas file
-    df_g = gp.read_file("https://github.com/jgarciab/workshop_data_viz/raw/main/advanced_2023/data/nld.geojson").to_crs("epsg:3395")
+    df_g = gp.read_file("http://javier.science/panel_sicss_results/data/nld.geojson").to_crs("epsg:3395")
     df_g["geometry"] = df_g["geometry"].simplify(500)
     df_gemeente = pd.merge(df_g, df_gemeente)
 
