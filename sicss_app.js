@@ -74,9 +74,8 @@ def decrypt_file(password):
         pd.DataFrame: Decrypted data as a pandas DataFrame.
     """
     
-    url = "http://javier.science/panel_sicss_results/data/eval_data_cleaned.tsv.crypt"
-    response = requests.get(url)
-    file_data = response.content
+    with open("data/eval_data_cleaned.tsv.crypt") as f:
+        file_data = f.read()
 
     # Extract the salt and encrypted data
     salt, encrypted_data = file_data[:16], file_data[16:]
@@ -123,7 +122,7 @@ def create_data(pass_):
     df_gemeente["statcode"] = (
         "GM" + df_gemeente["Gemeente"].astype(float).astype(int).astype(str).str.zfill(4)
     )  # same as geopandas file
-    df_g = gp.read_file("http://javier.science/panel_sicss_results/data/nld.geojson").to_crs("epsg:3395")
+    df_g = gp.read_file("data/nld.geojson").to_crs("epsg:3395")
     df_g["geometry"] = df_g["geometry"].simplify(500)
     df_gemeente = pd.merge(df_g, df_gemeente)
 
