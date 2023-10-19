@@ -15,7 +15,7 @@ async function startApplication() {
   self.pyodide.globals.set("sendPatch", sendPatch);
   console.log("Loaded!");
   await self.pyodide.loadPackage("micropip");
-  const env_spec = ['https://cdn.holoviz.org/panel/1.2.3/dist/wheels/bokeh-3.2.2-py3-none-any.whl', 'https://cdn.holoviz.org/panel/1.2.3/dist/wheels/panel-1.2.3-py3-none-any.whl', 'pyodide-http==0.2.1', 'cryptography', 'geopandas', 'hvplot', 'numpy', 'pandas']
+  const env_spec = ['https://cdn.holoviz.org/panel/1.2.3/dist/wheels/bokeh-3.2.2-py3-none-any.whl', 'https://cdn.holoviz.org/panel/1.2.3/dist/wheels/panel-1.2.3-py3-none-any.whl', 'pyodide-http==0.2.1', 'cryptography', 'geopandas', 'hvplot', 'numpy', 'pandas', 'requests']
   for (const pkg of env_spec) {
     let pkg_name;
     if (pkg.endsWith('.whl')) {
@@ -63,6 +63,7 @@ from bokeh.models import GeoJSONDataSource, HoverTool, ColorBar
 from bokeh.palettes import brewer
 from bokeh.plotting import figure
 from bokeh.transform import linear_cmap
+import requests
 
 def decrypt_file(password):
     """
