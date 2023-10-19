@@ -1,4 +1,4 @@
-importScripts("https://cdn.jsdelivr.net/pyodide/v0.24.1/pyc/pyodide.js");
+importScripts("https://cdn.jsdelivr.net/pyodide/v0.23.4/pyc/pyodide.js");
 
 function sendPatch(patch, buffers, msg_id) {
   self.postMessage({
@@ -15,7 +15,7 @@ async function startApplication() {
   self.pyodide.globals.set("sendPatch", sendPatch);
   console.log("Loaded!");
   await self.pyodide.loadPackage("micropip");
-  const env_spec = ['https://cdn.holoviz.org/panel/1.2.3/dist/wheels/bokeh-3.2.2-py3-none-any.whl', 'https://cdn.holoviz.org/panel/1.2.3/dist/wheels/panel-1.2.3-py3-none-any.whl', 'pyodide-http', 'cartopy', 'cryptography', 'geopandas', 'hvplot', 'numpy', 'pandas', 'requests']
+  const env_spec = ['https://cdn.holoviz.org/panel/1.2.3/dist/wheels/bokeh-3.2.2-py3-none-any.whl', 'https://cdn.holoviz.org/panel/1.2.3/dist/wheels/panel-1.2.3-py3-none-any.whl', 'pyodide-http==0.2.1', 'cryptography', 'geopandas', 'hvplot', 'numpy', 'pandas']
   for (const pkg of env_spec) {
     let pkg_name;
     if (pkg.endsWith('.whl')) {
@@ -49,7 +49,6 @@ init_doc()
 
 import panel as pn
 import hvplot.pandas
-pn.extension()
 
 from numpy import mean
 import pandas as pd
@@ -60,8 +59,10 @@ from cryptography.fernet import Fernet
 from cryptography.hazmat.primitives import hashes
 from cryptography.hazmat.primitives.kdf.pbkdf2 import PBKDF2HMAC
 from cryptography.hazmat.backends import default_backend
-import cartopy.crs as ccrs
-import requests
+from bokeh.models import GeoJSONDataSource, HoverTool, ColorBar
+from bokeh.palettes import brewer
+from bokeh.plotting import figure
+from bokeh.transform import linear_cmap
 
 def decrypt_file(password):
     """
@@ -125,7 +126,7 @@ def create_data(pass_):
         "GM" + df_gemeente["Gemeente"].astype(float).astype(int).astype(str).str.zfill(4)
     )  # same as geopandas file
     df_g = gp.read_file("http://javier.science/panel_sicss_results/data/nld.geojson")
-    df_g["geometry"] = df_g["geometry"].simplify(500)
+    df_g["geometry"] = df_g["geometry"]
     df_gemeente = pd.merge(df_g, df_gemeente)
 
     # Aggregated data
@@ -215,27 +216,37 @@ def plots(df, df_gemeente):
             title = f"Prediction score (F1) in the different gemeenten of\\ngroup '{group}' for the full population"
         else:
             title = f"Prediction score (F1) in the different gemeenten of\\ngroup '{group}' for {grouping_variable} == {selection}"
+        
+        
+        # Convert the merged data into GeoJSONDataSource for Bokeh
+        geo_source = GeoJSONDataSource(geojson=df_gemeent1.to_json())
+        low, high = bounds(df_gemeent1["f1_score"])
+        # Create a mapper for coloring the data points on the map
+        mapper = linear_cmap(field_name='f1_score', palette=brewer['RdYlBu'][8], low=low, high=high, nan_color="lightgray")
+        
 
-        # Create choropleth using hvPlot
-        choropleth = df_gemeent1.hvplot.polygons(
-            geo=True,
-            title=title,
-            cmap="RdYlBu_r",
-            c='f1_score',
-            crs=ccrs.epsg("28992"),
-            hover_cols=["statcode", "statnaam"],
-            width=850,
-            height=550,
-            colorbar=True,
-            line_color="white",
-            line_width=0.5,
-            clim=bounds(df_gemeent1["f1_score"]),  # Color limits for the colorbar
-            xaxis=None,
-            yaxis=None
-        )
+        # Create the figure and add the map using patches
+        p = figure(title=title, tools='pan, wheel_zoom, reset, save')
+        p.patches('xs', 'ys', source=geo_source, fill_color=mapper, line_color='black', line_width=0.5, fill_alpha=1)
+        
+        # Add hover functionality
+        hover = HoverTool()
+        hover.tooltips = [("Region", "@statnaam"), ("Code", "@statcode"), ("F1 score", "@f1_score")]
+        p.add_tools(hover)
+        
+        # Add the ColorBar
+        color_bar = ColorBar(color_mapper=mapper['transform'], width=8, location=(0,0))
+        p.add_layout(color_bar, 'right')
 
-        return choropleth
 
+        # Hide the axes
+        p.xaxis.visible = False
+        p.yaxis.visible = False
+        p.xgrid.visible = False
+        p.ygrid.visible = False
+        
+        return p
+        
     def plot_s(group, grouping_variable):
         """
         Create a scatter plot of Recall vs Precision.
